@@ -1,79 +1,92 @@
-# Get-GCPPasswordPolicies.ps1
-
-param(
-    [Parameter(Mandatory=$true)]
-    [string]$ServiceAccountEmail,
+function Get-PasswordPolicy {
+    param (
+        [Parameter(Mandatory)]
+        [bool]$DesiredPasswordStrengthEnforced,
+        [Parameter(Mandatory)]
+        [int]$DesiredMinLength,
+        [Parameter(Mandatory)]
+        [int]$DesiredMaxLength,
+        [Parameter(Mandatory)]
+        [bool]$DesiredEnforceNextSignIn,
+        [Parameter(Mandatory)]
+        [bool]$DesiredPasswordReuseAllowed,
+        [Parameter(Mandatory)]
+        [int]$DesiredPasswordExpirationDays
+        # [Parameter(Mandatory)]
+        # [string]$AccessToken
+    )
     
-    [Parameter(Mandatory=$true)]
-    [string]$AdminEmail,
-    
-    [Parameter(Mandatory=$true)]
-    [string]$P12CertificatePath
-)
+    # Hardcoded parameters
+    $ServiceAccountEmail = "github-sp@mindful-life-450521-e0.iam.gserviceaccount.com"
+    $AdminEmail = "peleke@kemkos.com"
+    $P12CertificatePath = "C:\Users\Personal\Downloads\mindful-life-450521-e0-c5c74fa10e5c.p12"
 
-$Scopes = @(
-    "https://www.googleapis.com/auth/cloud-identity",
-    "https://www.googleapis.com/auth/cloud-platform"
-)
-$P12CertificatePassword = 'notasecret'
+    $Scopes = @(
+        "https://www.googleapis.com/auth/cloud-platform",
+        "https://www.googleapis.com/auth/cloud-identity",
+        "https://www.googleapis.com/auth/cloud-identity.policies",
+        "https://www.googleapis.com/auth/cloud-identity.policies.readonly"
+    )
 
-try {
-    # Verify P12 file exists
-    if (-not (Test-Path $P12CertificatePath)) {
-        throw "P12 certificate file not found at: $P12CertificatePath"
-    }
+    $P12CertificatePassword = 'notasecret'
 
-    Write-Host "Reading P12 certificate..."
-    $P12CertificateBase64 = [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes($P12CertificatePath))
-    Write-Host "P12 certificate read successfully"
-
-    Write-Host "Requesting access token..."
-    Write-Host "Service Account: $ServiceAccountEmail"
-    Write-Host "Admin Email: $AdminEmail"
-    Write-Host "Scopes: $($Scopes -join ', ')"
-
-    $accessTokenParams = @{
-        Issuer = $ServiceAccountEmail
-        Subject = $AdminEmail
-        Scopes = $Scopes
-        P12CertificateBase64 = $P12CertificateBase64
-        P12CertificatePassword = $P12CertificatePassword
-    }
-
-    $accesstoken = Get-EciGwsAccessToken @accessTokenParams
-
-    if (-not $accesstoken) {
-        throw "Access token is null or empty"
-    }
-
-    Write-Host "Access token obtained successfully"
-
-    $apiParams = @{
-        Method = "GET"
-        Uri = "https://cloudidentity.googleapis.com/v1/policies?pageSize=100&filter=setting.type=='settings/security.password'"
-        Headers = @{
-            Authorization = "Bearer $accesstoken"
-            'Content-Type' = 'application/json'
+    try {
+        Write-Host "Starting password policy check..."
+        
+        if (-not (Test-Path $P12CertificatePath)) {
+            throw "P12 certificate file not found at: $P12CertificatePath"
         }
-        ErrorAction = 'Stop'
-    }
 
-    Write-Host "Making API request..."
-    $Response = Invoke-WebRequest @apiParams
-    $policies = $Response.Content | ConvertFrom-Json
+        $P12CertificateBytes = [System.IO.File]::ReadAllBytes($P12CertificatePath)
+        $P12CertificateBase64 = [System.Convert]::ToBase64String($P12CertificateBytes)
+        
+        $accessTokenParams = @{
+            Issuer = $ServiceAccountEmail
+            Subject = $AdminEmail
+            Scopes = $Scopes
+            P12CertificateBase64 = $P12CertificateBase64
+            P12CertificatePassword = $P12CertificatePassword
+        }
 
-    Write-Output $policies
-}
-catch {
-    Write-Error "An error occurred: $_"
-    
-    if ($_.Exception.Response) {
-        $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-        $reader.BaseStream.Position = 0
-        $reader.DiscardBufferedData()
-        $responseBody = $reader.ReadToEnd()
-        Write-Host "Full error response: $responseBody" -ForegroundColor Red
+        $accesstoken = Get-EciGwsAccessToken @accessTokenParams
+
+        if (-not $accesstoken) {
+            throw "Access token returned null or empty"
+        }
+
+        $endpoint = "https://cloudidentity.googleapis.com/v1/policies"
+        
+        $apiParams = @{
+            Method = "GET"
+            Uri = $endpoint
+            Headers = @{
+                Authorization = "Bearer $accesstoken"
+                'Content-Type' = 'application/json'
+                'Accept' = 'application/json'
+            }
+            TimeoutSec = 30
+            ErrorAction = 'Stop'
+        }
+
+        $Response = Invoke-RestMethod @apiParams
+        
+        # Call the helper function to Compile current state and evaluate drift
+        Write-Host "Compiling current state and Calculating Drift" 
+        $Iteration = 0
+        $PreResults = Compare-OrgPasswordPolicy 
+        $Iteration = $PreResults["Iteration"]
+        $DriftCounter = $PreResults["DriftCounter"]
+        $DriftSummary = $PreResults["DriftSummary"]
+
+        Write-Host "THIS IS A DRIFT DETECTION RUN. NO CHANGES WILL BE MADE"
+        if ($DriftCounter -gt 0) {
+            return Get-ReturnValue -ExitCode 2 -DriftSummary $DriftSummary
+        } else {
+            return Get-ReturnValue -ExitCode 0 -DriftSummary $DriftSummary
+        }
     }
-    
-    Write-Host "Stack Trace: $($_.ScriptStackTrace)" -ForegroundColor Red
+    catch {
+        Write-Error "An error occurred: $_"
+        throw
+    }
 }
