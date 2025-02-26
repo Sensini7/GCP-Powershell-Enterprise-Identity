@@ -13,7 +13,7 @@ function Get-PasswordPolicy {
         [Parameter(Mandatory)]
         [int]$DesiredPasswordExpirationDays,
         [Parameter(Mandatory)]
-        [string]$accessToken
+        [string]$accesstoken
     )
     
     # Hardcoded parameters
