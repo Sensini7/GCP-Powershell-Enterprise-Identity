@@ -1,9 +1,28 @@
 function Compare-OrgPasswordPolicy {
+    Write-Host "Starting Compare-OrgPasswordPolicy..."
+    Write-Host "Access Token (first 20 chars): $($accesstoken.Substring(0,20))..."
+
     # Build API request with specific filter
     $splat = @{
         Method = "GET"
         Uri = "https://cloudidentity.googleapis.com/v1/policies?pageSize=100&filter=setting.type=='settings/security.password'"
         Headers = @{Authorization = "Bearer $accesstoken"}
+
+        ErrorAction = 'Stop'
+    }
+
+    Write-Host "Attempting to call API with URI: $($splat.Uri)"
+    
+    try {
+        $Response = Invoke-WebRequest @splat
+        Write-Host "API call successful"
+        $json = $Response.Content | ConvertFrom-Json
+    }
+    catch {
+        Write-Host "API call failed with error: $_"
+        Write-Host "Status Code: $($_.Exception.Response.StatusCode)"
+        Write-Host "Status Description: $($_.Exception.Response.StatusDescription)"
+        throw
     }
     
     $Response = Invoke-WebRequest @splat
