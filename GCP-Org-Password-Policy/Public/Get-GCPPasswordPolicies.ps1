@@ -11,7 +11,7 @@ function Get-PasswordPolicy {
         [Parameter(Mandatory)]
         [bool]$DesiredPasswordReuseAllowed,
         [Parameter(Mandatory)]
-        [int]$DesiredPasswordExpirationDays
+        [int]$DesiredPasswordExpirationDays,
         [Parameter(Mandatory)]
         [string]$AccessToken
     )
