@@ -1,26 +1,28 @@
 function Compare-OrgPasswordPolicy {
-    # param(
-    #     [Parameter(Mandatory)]
-    #     [string]$accesstoken,
-    #     [Parameter(Mandatory)]
-    #     [bool]$DesiredPasswordStrengthEnforced,
-    #     [Parameter(Mandatory)]
-    #     [int]$DesiredMinLength,
-    #     [Parameter(Mandatory)]
-    #     [int]$DesiredMaxLength,
-    #     [Parameter(Mandatory)]
-    #     [bool]$DesiredEnforceNextSignIn,
-    #     [Parameter(Mandatory)]
-    #     [bool]$DesiredPasswordReuseAllowed,
-    #     [Parameter(Mandatory)]
-    #     [int]$DesiredPasswordExpirationDays
-    # )
+    Write-Host "Starting Compare-OrgPasswordPolicy..."
+    Write-Host "Access Token (first 20 chars): $($accesstoken.Substring(0,20))..."
 
     # Build API request with specific filter
     $splat = @{
         Method = "GET"
         Uri = "https://cloudidentity.googleapis.com/v1/policies?pageSize=100&filter=setting.type=='settings/security.password'"
         Headers = @{Authorization = "Bearer $accesstoken"}
+
+        ErrorAction = 'Stop'
+    }
+
+    Write-Host "Attempting to call API with URI: $($splat.Uri)"
+    
+    try {
+        $Response = Invoke-WebRequest @splat
+        Write-Host "API call successful"
+        $json = $Response.Content | ConvertFrom-Json
+    }
+    catch {
+        Write-Host "API call failed with error: $_"
+        Write-Host "Status Code: $($_.Exception.Response.StatusCode)"
+        Write-Host "Status Description: $($_.Exception.Response.StatusDescription)"
+        throw
     }
     
     $Response = Invoke-WebRequest @splat
@@ -33,41 +35,40 @@ function Compare-OrgPasswordPolicy {
 
     $DriftSummary = @()
     $DriftCounter = 0
-    
-    # Mapping for enabled/disabled states
-    $Mapping = @{
-        $true = 'ENABLED'
-        $false = 'DISABLED'
-    }
 
     # Calculate drift for each policy
     foreach ($policy in $passwordPolicies) {
         $settings = $policy.setting.value
 
-        # Compare settings and track drift
-        if ($settings.allowedStrength -ne ($Mapping[$DesiredPasswordStrengthEnforced])) {
+        # Compare Password Strength (Map Boolean to STRONG/WEAK)
+        $desiredStrength = if ($DesiredPasswordStrengthEnforced) { 'STRONG' } else { 'WEAK' }
+        if ($settings.allowedStrength -ne $desiredStrength) {
             $DriftCounter++
-            $DriftSummary += "Policy $($policy.name) - Password Strength: CURRENT: $($settings.allowedStrength) -> DESIRED: $($Mapping[$DesiredPasswordStrengthEnforced])"
+            $DriftSummary += "Policy $($policy.name) - Password Strength: CURRENT: $($settings.allowedStrength) -> DESIRED: $desiredStrength"
         }
 
+        # Compare Minimum Length
         if ($settings.minimumLength -ne $DesiredMinLength) {
             $DriftCounter++
             $DriftSummary += "Policy $($policy.name) - Minimum Length: CURRENT: $($settings.minimumLength) -> DESIRED: $DesiredMinLength"
         }
 
+        # Compare Maximum Length
         if ($settings.maximumLength -ne $DesiredMaxLength) {
             $DriftCounter++
             $DriftSummary += "Policy $($policy.name) - Maximum Length: CURRENT: $($settings.maximumLength) -> DESIRED: $DesiredMaxLength"
         }
 
+        # Compare Enforce at Login (True/False comparison)
         if ($settings.enforceRequirementsAtLogin -ne $DesiredEnforceNextSignIn) {
             $DriftCounter++
-            $DriftSummary += "Policy $($policy.name) - Enforce at Login: CURRENT: $($Mapping[$settings.enforceRequirementsAtLogin]) -> DESIRED: $($Mapping[$DesiredEnforceNextSignIn])"
+            $DriftSummary += "Policy $($policy.name) - Enforce at Login: CURRENT: $($settings.enforceRequirementsAtLogin) -> DESIRED: $DesiredEnforceNextSignIn"
         }
 
+        # Compare Password Reuse (True/False comparison)
         if ($settings.allowReuse -ne $DesiredPasswordReuseAllowed) {
             $DriftCounter++
-            $DriftSummary += "Policy $($policy.name) - Password Reuse: CURRENT: $($Mapping[$settings.allowReuse]) -> DESIRED: $($Mapping[$DesiredPasswordReuseAllowed])"
+            $DriftSummary += "Policy $($policy.name) - Password Reuse: CURRENT: $($settings.allowReuse) -> DESIRED: $DesiredPasswordReuseAllowed"
         }
 
         # Convert expirationDuration from "Xs" format to days
@@ -75,6 +76,7 @@ function Compare-OrgPasswordPolicy {
             [int]($settings.expirationDuration -replace 's$', '') / 86400
         }
 
+        # Compare Password Expiration Days
         if ($currentExpirationDays -ne $DesiredPasswordExpirationDays) {
             $DriftCounter++
             $DriftSummary += "Policy $($policy.name) - Password Expiration Days: CURRENT: $currentExpirationDays -> DESIRED: $DesiredPasswordExpirationDays"
@@ -85,10 +87,51 @@ function Compare-OrgPasswordPolicy {
     Write-Host "===================================================================================================="
     Write-Host "DRIFT SUMMARY:"
 
+    # if ($DriftSummary.Count -gt 0) {
+    #     $DriftSummary | ForEach-Object { Write-Host $_ }
+    # } else {
+    #     Write-Host "No drift detected. All password policies match desired state."
+    # }
+
     if ($DriftSummary.Count -gt 0) {
-        $DriftSummary | ForEach-Object { Write-Host $_ }
+    # Group drift entries by policy
+    $policyDrifts = @{}
+    
+    foreach ($drift in $DriftSummary) {
+        # Extract policy name from drift message
+        $policyName = ($drift -split ' - ')[0].Replace('Policy ', '')
+        
+        # Get the corresponding policy object for additional details
+        $policy = $passwordPolicies | Where-Object { $_.name -eq $policyName }
+        
+        if (-not $policyDrifts.ContainsKey($policyName)) {
+            $policyDrifts[$policyName] = @{
+                'PolicyDetails' = @{
+                    'OrgUnit' = $policy.policyQuery.orgUnit
+                    'AppliesTo' = $policy.policyQuery.query
+                }
+                'Drifts' = @()
+            }
+        }
+        
+        # Add drift detail (everything after "Policy policyname - ")
+        $driftDetail = ($drift -split ' - ', 2)[1]
+        $policyDrifts[$policyName]['Drifts'] += $driftDetail
+    }
+    
+    # Display grouped drifts
+    foreach ($policyName in $policyDrifts.Keys) {
+        Write-Host "`nPolicy: $policyName"
+        Write-Host "Organization Unit: $($policyDrifts[$policyName]['PolicyDetails']['OrgUnit'])"
+        Write-Host "Applies to: $($policyDrifts[$policyName]['PolicyDetails']['AppliesTo'])"
+        Write-Host "`nDrifts detected:"
+        foreach ($drift in $policyDrifts[$policyName]['Drifts']) {
+            Write-Host "  - $drift"
+        }
+        Write-Host "-----------------------------------"
+    }
     } else {
-        Write-Host "No drift detected. All password policies match desired state."
+    Write-Host "No drift detected. All password policies match desired state."
     }
 
     # Summarize Current State
