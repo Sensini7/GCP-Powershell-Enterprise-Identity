@@ -68,52 +68,52 @@ function Compare-OrgPasswordPolicy {
     Write-Host "===================================================================================================="
     Write-Host "DRIFT SUMMARY:"
 
-    if ($DriftSummary.Count -gt 0) {
-        $DriftSummary | ForEach-Object { Write-Host $_ }
-    } else {
-        Write-Host "No drift detected. All password policies match desired state."
-    }
-
     # if ($DriftSummary.Count -gt 0) {
-    # # Group drift entries by policy
-    # $policyDrifts = @{}
-    
-    # foreach ($drift in $DriftSummary) {
-    #     # Extract policy name from drift message
-    #     $policyName = ($drift -split ' - ')[0].Replace('Policy ', '')
-        
-    #     # Get the corresponding policy object for additional details
-    #     $policy = $passwordPolicies | Where-Object { $_.name -eq $policyName }
-        
-    #     if (-not $policyDrifts.ContainsKey($policyName)) {
-    #         $policyDrifts[$policyName] = @{
-    #             'PolicyDetails' = @{
-    #                 'OrgUnit' = $policy.policyQuery.orgUnit
-    #                 'AppliesTo' = $policy.policyQuery.query
-    #             }
-    #             'Drifts' = @()
-    #         }
-    #     }
-        
-    #     # Add drift detail (everything after "Policy policyname - ")
-    #     $driftDetail = ($drift -split ' - ', 2)[1]
-    #     $policyDrifts[$policyName]['Drifts'] += $driftDetail
-    # }
-    
-    # # Display grouped drifts
-    # foreach ($policyName in $policyDrifts.Keys) {
-    #     Write-Host "`nPolicy: $policyName"
-    #     Write-Host "Organization Unit: $($policyDrifts[$policyName]['PolicyDetails']['OrgUnit'])"
-    #     Write-Host "Applies to: $($policyDrifts[$policyName]['PolicyDetails']['AppliesTo'])"
-    #     Write-Host "`nDrifts detected:"
-    #     foreach ($drift in $policyDrifts[$policyName]['Drifts']) {
-    #         Write-Host "  - $drift"
-    #     }
-    #     Write-Host "-----------------------------------"
-    # }
+    #     $DriftSummary | ForEach-Object { Write-Host $_ }
     # } else {
-    # Write-Host "No drift detected. All password policies match desired state."
+    #     Write-Host "No drift detected. All password policies match desired state."
     # }
+
+    if ($DriftSummary.Count -gt 0) {
+    # Group drift entries by policy
+    $policyDrifts = @{}
+    
+    foreach ($drift in $DriftSummary) {
+        # Extract policy name from drift message
+        $policyName = ($drift -split ' - ')[0].Replace('Policy ', '')
+        
+        # Get the corresponding policy object for additional details
+        $policy = $passwordPolicies | Where-Object { $_.name -eq $policyName }
+        
+        if (-not $policyDrifts.ContainsKey($policyName)) {
+            $policyDrifts[$policyName] = @{
+                'PolicyDetails' = @{
+                    'OrgUnit' = $policy.policyQuery.orgUnit
+                    'AppliesTo' = $policy.policyQuery.query
+                }
+                'Drifts' = @()
+            }
+        }
+        
+        # Add drift detail (everything after "Policy policyname - ")
+        $driftDetail = ($drift -split ' - ', 2)[1]
+        $policyDrifts[$policyName]['Drifts'] += $driftDetail
+    }
+    
+    # Display grouped drifts
+    foreach ($policyName in $policyDrifts.Keys) {
+        Write-Host "`nPolicy: $policyName"
+        Write-Host "Organization Unit: $($policyDrifts[$policyName]['PolicyDetails']['OrgUnit'])"
+        Write-Host "Applies to: $($policyDrifts[$policyName]['PolicyDetails']['AppliesTo'])"
+        Write-Host "`nDrifts detected:"
+        foreach ($drift in $policyDrifts[$policyName]['Drifts']) {
+            Write-Host "  - $drift"
+        }
+        Write-Host "-----------------------------------"
+    }
+    } else {
+    Write-Host "No drift detected. All password policies match desired state."
+    }
 
     # Summarize Current State
     Write-Host "====================================================================================================" 
