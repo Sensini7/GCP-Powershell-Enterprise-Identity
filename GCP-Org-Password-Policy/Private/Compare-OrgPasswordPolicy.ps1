@@ -33,27 +33,12 @@ function Compare-OrgPasswordPolicy {
     #     $_.setting.type -eq "settings/security.password"
     # }
     
-    # Debug: Print all policies and their queries
-    $json.policies | Where-Object { 
-        $_.setting.type -eq "settings/security.password"
-    } | ForEach-Object {
-        Write-Host "Policy ID: $($_.name)"
-        Write-Host "Query: $($_.policyQuery.query)"
-        Write-Host "------------------------"
-    }
-
     # Then get only base policy
-    # Get only the base policy (the one with shortest query)
-    $passwordPolicies = $json.policies | 
-        Where-Object { $_.setting.type -eq "settings/security.password" } |
-        Sort-Object { $_.policyQuery.query.Length } |
-        Select-Object -First 1
-
     # Get all password policies excluding license policies
-    # $passwordPolicies = $json.policies | Where-Object { 
-    #     $_.setting.type -eq "settings/security.password" -and
-    #     $_.policyQuery.query -notmatch 'license'
-    # }
+    $passwordPolicies = $json.policies | Where-Object { 
+        $_.setting.type -eq "settings/security.password" -and
+        $_.policyQuery.query -notmatch 'license'
+    }
 
     # Filter out policies that have license conditions
     # $filteredPolicies = $response.policies | Where-Object {
