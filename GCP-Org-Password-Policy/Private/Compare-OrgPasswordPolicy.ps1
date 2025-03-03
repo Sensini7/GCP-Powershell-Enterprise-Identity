@@ -43,10 +43,12 @@ function Compare-OrgPasswordPolicy {
     }
 
     # Then get only base policy
+    # Get only base policy by finding the simplest query (no && conditions)
     $passwordPolicies = $json.policies | Where-Object { 
         $_.setting.type -eq "settings/security.password" -and
-        $_.policyQuery.query -eq "entity.org_units.exists(org_unit, org_unit.org_unit_id == orgUnitId('$orgUnitId'))"
+        -not $_.policyQuery.query.Contains('&&')
     }
+    
     # Get all password policies excluding license policies
     # $passwordPolicies = $json.policies | Where-Object { 
     #     $_.setting.type -eq "settings/security.password" -and
