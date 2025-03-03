@@ -33,11 +33,25 @@ function Compare-OrgPasswordPolicy {
     #     $_.setting.type -eq "settings/security.password"
     # }
     
-    # Get all password policies excluding license policies
+    # Debug: Print all policies and their queries
+    $json.policies | Where-Object { 
+        $_.setting.type -eq "settings/security.password"
+    } | ForEach-Object {
+        Write-Host "Policy ID: $($_.name)"
+        Write-Host "Query: $($_.policyQuery.query)"
+        Write-Host "------------------------"
+    }
+
+    # Then get only base policy
     $passwordPolicies = $json.policies | Where-Object { 
         $_.setting.type -eq "settings/security.password" -and
-        $_.policyQuery.query -notmatch 'license'
+        $_.policyQuery.query -eq "entity.org_units.exists(org_unit, org_unit.org_unit_id == orgUnitId('$orgUnitId'))"
     }
+    # Get all password policies excluding license policies
+    # $passwordPolicies = $json.policies | Where-Object { 
+    #     $_.setting.type -eq "settings/security.password" -and
+    #     $_.policyQuery.query -notmatch 'license'
+    # }
 
     # Filter out policies that have license conditions
     # $filteredPolicies = $response.policies | Where-Object {
