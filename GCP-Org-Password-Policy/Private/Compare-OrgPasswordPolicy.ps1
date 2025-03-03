@@ -5,7 +5,7 @@ function Compare-OrgPasswordPolicy {
     # Build API request with specific filter
     $splat = @{
         Method = "GET"
-        Uri = "https://cloudidentity.googleapis.com/v1/policies?pageSize=100&filter=setting.type=='settings/security.password' AND NOT policyQuery.query.contains('license')"
+        Uri = "https://cloudidentity.googleapis.com/v1/policies?pageSize=100&filter=setting.type=='settings/security.password'"
         Headers = @{Authorization = "Bearer $accesstoken"}
 
         ErrorAction = 'Stop'
@@ -29,9 +29,21 @@ function Compare-OrgPasswordPolicy {
     $json = $Response.Content | ConvertFrom-Json
     
     # Get all password policies
+    # $passwordPolicies = $json.policies | Where-Object { 
+    #     $_.setting.type -eq "settings/security.password"
+    # }
+    
+    # Get all password policies excluding license policies
     $passwordPolicies = $json.policies | Where-Object { 
-        $_.setting.type -eq "settings/security.password"
+        $_.setting.type -eq "settings/security.password" -and
+        $_.policyQuery.query -notmatch 'license'
     }
+
+    # Filter out policies that have license conditions
+    # $filteredPolicies = $response.policies | Where-Object {
+    #     $_.policyQuery.query -notmatch 'license'
+    # }
+
 
     $DriftSummary = @()
     $DriftCounter = 0
