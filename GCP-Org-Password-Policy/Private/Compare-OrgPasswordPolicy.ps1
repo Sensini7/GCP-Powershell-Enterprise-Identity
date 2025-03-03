@@ -5,7 +5,7 @@ function Compare-OrgPasswordPolicy {
     # Build API request with specific filter
     $splat = @{
         Method = "GET"
-        Uri = "https://cloudidentity.googleapis.com/v1/policies?pageSize=100&filter=setting.type=='settings/security.password'"
+        Uri = "https://cloudidentity.googleapis.com/v1/policies?pageSize=100&filter=setting.type=='settings/security.password' AND (NOT policyQuery.query.contains('entity.licenses.exists'))"
         Headers = @{Authorization = "Bearer $accesstoken"}
 
         ErrorAction = 'Stop'
