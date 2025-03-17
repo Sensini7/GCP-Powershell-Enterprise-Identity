@@ -29,7 +29,7 @@ function Get-APIControlAuditLogs {
             Write-Host "Created output directory: $OutputFolder"
         }
 
-        # Authentication setup
+        # Authentication setup remains the same...
         if (-not (Test-Path $P12CertificatePath)) {
             throw "P12 certificate file not found at: $P12CertificatePath"
         }
@@ -165,97 +165,10 @@ function Get-APIControlAuditLogs {
             $currentState | Export-Csv -Path $CurrentStatePath -NoTypeInformation -Encoding UTF8 -Force
             
             Write-Host "`nCurrent State of Settings:" -ForegroundColor Green
-            Write-Host "----------------------------------------" -ForegroundColor Gray
-            
-            # Headers
-            $headers = "Date                 | Organization Unit | Setting                 | Status       | Changed By          | IP Address"
-            $separator = "--------------------|------------------|------------------------|-------------|--------------------|-----------------"
-            Write-Host $headers -ForegroundColor Cyan
-            Write-Host $separator -ForegroundColor Gray
+            $currentState | Format-Table -AutoSize
 
-            # Display current state with color coding
-            foreach ($state in $currentState) {
-                # Status color coding
-                $statusColor = switch ($state.Status) {
-                    "Not Trusted" { "Red" }
-                    "Unrestricted" { "Yellow" }
-                    "Blocked" { "Green" }
-                    "Trusted" { "Green" }
-                    "Sign-in Only" { "Yellow" }
-                    default { "White" }
-                }
-
-                # Format each field with fixed width
-                $date = $state.Date.PadRight(20)
-                $orgUnit = $state.OrgUnit.PadRight(18)
-                $setting = $state.Setting.PadRight(24)
-                $status = $state.Status.PadRight(13)
-                $actor = $state.Actor.PadRight(20)
-                $ip = $state.'IP address'
-
-                # Build the line
-                Write-Host "$date" -NoNewline
-                Write-Host "| " -NoNewline -ForegroundColor Gray
-                Write-Host "$orgUnit" -NoNewline
-                Write-Host "| " -NoNewline -ForegroundColor Gray
-                Write-Host "$setting" -NoNewline
-                Write-Host "| " -NoNewline -ForegroundColor Gray
-                Write-Host "$status" -NoNewline -ForegroundColor $statusColor
-                Write-Host "| " -NoNewline -ForegroundColor Gray
-                Write-Host "$actor" -NoNewline
-                Write-Host "| " -NoNewline -ForegroundColor Gray
-                Write-Host "$ip"
-            }
-            Write-Host "----------------------------------------" -ForegroundColor Gray
-
-            # Add summary section
-            Write-Host "`nSummary:" -ForegroundColor Green
-            Write-Host "----------------------------------------" -ForegroundColor Gray
-            
-            # Count total changes
-            $totalChanges = $formattedLogs.Count
-            $uniqueActors = ($formattedLogs.Actor | Select-Object -Unique).Count
-            $lastChange = $formattedLogs | Select-Object -First 1
-            
-            Write-Host "Total changes made: " -NoNewline
-            Write-Host $totalChanges -ForegroundColor Yellow
-            Write-Host "Unique users making changes: " -NoNewline
-            Write-Host $uniqueActors -ForegroundColor Yellow
-            Write-Host "Last change made: " -NoNewline
-            Write-Host "$($lastChange.Date) by $($lastChange.Actor)" -ForegroundColor Yellow
-
-            # Security Status
-            Write-Host "`nSecurity Status:" -ForegroundColor Green
-            Write-Host "----------------------------------------" -ForegroundColor Gray
-            
-            foreach ($state in $currentState) {
-                $statusIcon = switch ($state.Status) {
-                    "Not Trusted" { "✅" }
-                    "Unrestricted" { "⚠️" }
-                    "Blocked" { "✅" }
-                    "Trusted" { "⚠️" }
-                    "Sign-in Only" { "⚠️" }
-                    default { "❓" }
-                }
-                
-                $statusColor = switch ($state.Status) {
-                    "Not Trusted" { "Red" }
-                    "Unrestricted" { "Yellow" }
-                    "Blocked" { "Green" }
-                    "Trusted" { "Green" }
-                    "Sign-in Only" { "Yellow" }
-                    default { "White" }
-                }
-
-                Write-Host "$statusIcon $($state.Setting) is " -NoNewline
-                Write-Host $state.Status -ForegroundColor $statusColor -NoNewline
-                Write-Host " for $($state.OrgUnit)"
-            }
-
-            Write-Host "`nFull audit log exported to: " -NoNewline
-            Write-Host $OutputPath -ForegroundColor Cyan
-            Write-Host "Current state exported to: " -NoNewline
-            Write-Host $CurrentStatePath -ForegroundColor Cyan
+            Write-Host "`nFull audit log exported to: $OutputPath"
+            Write-Host "Current state exported to: $CurrentStatePath"
         }
 
         return @{

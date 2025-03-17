@@ -14,3 +14,11 @@ All actors (both peleke@kemkos.com and arikeru@kemkos.com)
 All organizational units affected
 Timestamps and IP addresses for each change
 Exported to CSV for further analysis
+
+Get-APIControlSettings `
+    -DesiredDomainOwnedAppsTrust $true `
+    -DesiredBlockThirdPartyAPIAccess $true
+
+Get-APIControlSettings `
+    -DesiredDomainOwnedAppsTrust $false `
+    -DesiredBlockThirdPartyAPIAccess $false
