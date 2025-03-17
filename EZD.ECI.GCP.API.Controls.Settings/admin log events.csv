@@ -1,0 +1,6 @@
+Date,Event,Description,Actor,IP address
+2025-03-17T18:30:54+01:00,Domain Owned Apps Not Trusted,Domain Owned Apps removed from trusted list (org_unit_name: {KemkosDigital}),peleke@kemkos.com,102.244.157.207
+2025-03-17T18:01:33+01:00,Domain Owned Apps Trusted,Domain Owned Apps added to trusted list (org_unit_name: {KemkosDigital}),peleke@kemkos.com,102.244.157.207
+2025-03-17T18:01:20+01:00,All third party API access unblocked,All third party API Access unblocked (org_unit_name: {KemkosDigital}),peleke@kemkos.com,102.244.157.207
+2025-03-17T16:04:54+01:00,All third party API access blocked,All access to unconfigured third-party apps blocked for users under 18 for KemkosDigital,arikeru@kemkos.com,174.88.11.231
+2025-03-17T16:04:43+01:00,Domain Owned Apps Not Trusted,Domain Owned Apps removed from trusted list (org_unit_name: {KemkosDigital}),arikeru@kemkos.com,174.88.11.231
