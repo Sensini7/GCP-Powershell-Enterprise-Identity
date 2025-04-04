@@ -1,0 +1,101 @@
+name: "GCP: Get API Control Settings" 
+
+on:
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
+  #   paths:
+  #     - '.github/workflows/ps-gcp-get-superadmin-recovery.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        type: choice
+        description: Environment to deploy to
+        options:
+          - sumvita
+          - sumvita-gov
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  GCP_SERVICE_ACCOUNT_CLIENT_ID: ${{ vars.GCP_SERVICE_ACCOUNT_CLIENT_ID }}
+  GCP_SERVICE_ACCOUNT_SUBJECT_EMAIL: ${{ vars.GCP_SERVICE_ACCOUNT_SUBJECT_EMAIL }}
+  GCP_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+  GCP_SERVICE_ACCOUNT_CREDENTIALS_P12_BASE64: ${{ secrets.GCP_SERVICE_ACCOUNT_CREDENTIALS_P12_BASE64 }}
+  GCP_SERVICE_ACCOUNT_CREDENTIALS_P12_PASSWORD: ${{ secrets.GCP_SERVICE_ACCOUNT_CREDENTIALS_P12_PASSWORD }}
+  
+  DOMAIN_OWNED_APPS_TRUST: ${{vars.DOMAIN_OWNED_APPS_TRUST}}
+  BLOCK_THIRD_PARTY_API_ACCESS: ${{vars.BLOCK_THIRD_PARTY_API_ACCESS}}
+  
+
+
+jobs: 
+  # alert-upon-prod-deployment:
+  #   if: ${{ inputs.environment == 'PROD' }}
+  #   uses: ./.github/workflows/prod-deployment-alerts.yml
+  #   with:
+  #     environment: ${{ inputs.environment || 'kalvico-gcp' }}
+  #   secrets: inherit
+
+  gcp-get-superadmin-recovery-policy:
+    environment: ${{ inputs.environment || 'sumvita' }}
+    runs-on: ubuntu-latest
+    steps:
+
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout common module
+      uses: actions/checkout@v4
+      with:
+        repository: 'Sensini7/GCP-Powershell-Enterprise-Identity'
+        ref: 'Sensini/API-Control-Settings'
+        path: 'EZD.ECI.GCP.Common'
+        sparse-checkout: 'EZD.ECI.GCP.Common'
+        #ssh-key: ${{ secrets.GCP_MODULES_REPO_SSH_PRIVATE_KEY }}
+
+    - name: Checkout feature module
+      uses: actions/checkout@v4
+      with:
+        repository: 'Sensini7/GCP-Powershell-Enterprise-Identity'
+        ref: 'Sensini/API-Control-Settings'
+        path: 'EZD.ECI.GCP.API.Controls.Settings'
+        sparse-checkout: 'EZD.ECI.GCP.API.Controls.Settings'
+        #ssh-key: ${{ secrets.GCP_MODULES_REPO_SSH_PRIVATE_KEY }}
+
+    - name: 'Get API Control Settings'
+      shell: pwsh
+      run: |-
+        Import-Module .\EZD.ECI.GCP.Common\EZD.ECI.GCP.Common\EZD.ECI.GCP.Common.psd1 -Force
+        Import-Module .\EZD.ECI.GCP.API.Controls.Settings\EZD.ECI.GCP.API.Controls.Settings\EZD.ECI.GCP.API-Controls-Settings.psd1 -Force
+
+        Write-Host "Starting API Control Setings check..."
+        Write-Host "Using service account: $env:GCP_SERVICE_ACCOUNT_EMAIL"
+
+        $Scopes = @( 
+            "https://www.googleapis.com/auth/cloud-platform",
+            "https://www.googleapis.com/auth/cloud-identity",
+            "https://www.googleapis.com/auth/admin.reports.audit.readonly",
+            "https://www.googleapis.com/auth/admin.reports.usage.readonly"
+        )
+
+        Write-Host "Using scope: $Scopes"
+
+        $AccessTokenSplat = @{
+          Issuer = $env:GCP_SERVICE_ACCOUNT_EMAIL
+          Subject = $env:GCP_SERVICE_ACCOUNT_SUBJECT_EMAIL
+          P12CertificateBase64 = $env:GCP_SERVICE_ACCOUNT_CREDENTIALS_P12_BASE64
+          P12CertificatePassword = $env:GCP_SERVICE_ACCOUNT_CREDENTIALS_P12_PASSWORD
+          Scopes = $Scopes
+        }
+        
+        Write-Host "Getting access token..."
+        $AccessToken = Get-EciGwsAccessToken @AccessTokenSplat
+        Write-Host "Access token obtained"
+        
+        Write-Host "Converting parameters..."
+        $DesiredDomainOwnedAppsTrust = [System.Convert]::ToBoolean($env:DOMAIN_OWNED_APPS_TRUST)
+        $DesiredBlockThirdPartyAPIAccess = [System.Convert]::ToBoolean($env:BLOCK_THIRD_PARTY_API_ACCESS)
+        
+        Write-Host "Calling Get-APIControlSettings..."
+        Get-APIControlSettings -DesiredDomainOwnedAppsTrust $DesiredDomainOwnedAppsTrust -DesiredBlockThirdPartyAPIAccess $DesiredBlockThirdPartyAPIAccess -accessToken $AccessToken
+        
