@@ -25,8 +25,8 @@ env:
   GCP_SERVICE_ACCOUNT_CREDENTIALS_P12_BASE64: ${{ secrets.GCP_SERVICE_ACCOUNT_CREDENTIALS_P12_BASE64 }}
   GCP_SERVICE_ACCOUNT_CREDENTIALS_P12_PASSWORD: ${{ secrets.GCP_SERVICE_ACCOUNT_CREDENTIALS_P12_PASSWORD }}
   
-  DOMAIN_OWNED_APPS_TRUST: ${{vars.DOMAIN_OWNED_APPS_TRUST}}
-  BLOCK_THIRD_PARTY_API_ACCESS: ${{vars.BLOCK_THIRD_PARTY_API_ACCESS}}
+  GCP_DOMAIN_OWNED_APPS_TRUST: ${{vars.GCP_DOMAIN_OWNED_APPS_TRUST}}
+  GCP_BLOCK_THIRD_PARTY_API_ACCESS: ${{vars.GCP_BLOCK_THIRD_PARTY_API_ACCESS}}
   
 
 
@@ -93,8 +93,8 @@ jobs:
         Write-Host "Access token obtained"
         
         Write-Host "Converting parameters..."
-        $DesiredDomainOwnedAppsTrust = [System.Convert]::ToBoolean($env:DOMAIN_OWNED_APPS_TRUST)
-        $DesiredBlockThirdPartyAPIAccess = [System.Convert]::ToBoolean($env:BLOCK_THIRD_PARTY_API_ACCESS)
+        $DesiredDomainOwnedAppsTrust = [System.Convert]::ToBoolean($env:GCP_DOMAIN_OWNED_APPS_TRUST)
+        $DesiredBlockThirdPartyAPIAccess = [System.Convert]::ToBoolean($env:GCP_BLOCK_THIRD_PARTY_API_ACCESS)
         
         Write-Host "Calling Get-APIControlSettings..."
         Get-APIControlSettings -DesiredDomainOwnedAppsTrust $DesiredDomainOwnedAppsTrust -DesiredBlockThirdPartyAPIAccess $DesiredBlockThirdPartyAPIAccess -accessToken $AccessToken
