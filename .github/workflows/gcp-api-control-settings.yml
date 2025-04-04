@@ -66,7 +66,7 @@ jobs:
       shell: pwsh
       run: |-
         Import-Module .\EZD.ECI.GCP.Common\EZD.ECI.GCP.Common\EZD.ECI.GCP.Common.psd1 -Force
-        Import-Module .\EZD.ECI.GCP.API.Controls.Settings\EZD.ECI.GCP.API.Controls.Settings\EZD.ECI.GCP.API-Controls-Settings.psd1 -Force
+        Import-Module .\EZD.ECI.GCP.API.Controls.Settings\EZD.ECI.GCP.API.Controls.Settings\EZD.ECI.GCP.API-Control-Settings.psd1 -Force
 
         Write-Host "Starting API Control Setings check..."
         Write-Host "Using service account: $env:GCP_SERVICE_ACCOUNT_EMAIL"
