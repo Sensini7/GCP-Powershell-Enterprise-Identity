@@ -3,7 +3,7 @@ function Get-APIControlSettings {
         [Parameter(Mandatory)]
         [bool]$DesiredDomainOwnedAppsTrust,
         [Parameter(Mandatory)]
-        [bool]$DesiredBlockThirdPartyAPIAccess
+        [bool]$DesiredBlockThirdPartyAPIAccess,
         [Parameter(Mandatory)]
         [string]$accesstoken
     )
