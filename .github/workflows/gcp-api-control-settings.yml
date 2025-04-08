@@ -48,7 +48,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: 'Sensini7/GCP-Powershell-Enterprise-Identity'
-        ref: 'Sensini/API-Control-Settings'
+        ref: 'Sensini/U-API-CS-module'
         path: 'EZD.ECI.GCP.Common'
         sparse-checkout: 'EZD.ECI.GCP.Common'
         #ssh-key: ${{ secrets.GCP_MODULES_REPO_SSH_PRIVATE_KEY }}
@@ -57,7 +57,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: 'Sensini7/GCP-Powershell-Enterprise-Identity'
-        ref: 'Sensini/API-Control-Settings'
+        ref: 'Sensini/U-API-CS-module'
         path: 'EZD.ECI.GCP.API.Controls.Settings'
         sparse-checkout: 'EZD.ECI.GCP.API.Controls.Settings'
         #ssh-key: ${{ secrets.GCP_MODULES_REPO_SSH_PRIVATE_KEY }}
