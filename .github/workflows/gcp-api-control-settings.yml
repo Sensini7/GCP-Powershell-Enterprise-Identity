@@ -38,7 +38,7 @@ jobs:
   #     environment: ${{ inputs.environment || 'kalvico-gcp' }}
   #   secrets: inherit
 
-  gcp-get-superadmin-recovery-policy:
+  gcp-get-api-control-settings:
     environment: ${{ inputs.environment || 'sumvita' }}
     runs-on: ubuntu-latest
     steps:
